@@ -66,6 +66,15 @@ public interface FetchTask<Split> {
 
         boolean isDataChangeRecord(SourceRecord record);
 
+        /**
+         * Returns whether a source record should be emitted by the stream fetcher.
+         *
+         * <p>Dialects can override this to apply connector-specific filtering rules.
+         */
+        default boolean shouldEmit(SourceRecord record) {
+            return true;
+        }
+
         boolean isRecordBetween(SourceRecord record, Object[] splitStart, Object[] splitEnd);
 
         /**

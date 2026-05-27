@@ -496,8 +496,7 @@ public class PostgresSourceBuilder<T> {
                     deserializationSchema,
                     sourceReaderMetrics,
                     sourceConfig.isIncludeSchemaChanges(),
-                    offsetFactory,
-                    (PostgresSourceConfig) sourceConfig);
+                    offsetFactory);
         }
 
         public static <T> PostgresSourceBuilder<T> builder() {

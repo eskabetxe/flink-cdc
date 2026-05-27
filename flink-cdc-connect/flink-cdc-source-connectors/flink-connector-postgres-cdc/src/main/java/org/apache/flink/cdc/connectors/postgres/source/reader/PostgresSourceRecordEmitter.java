@@ -22,7 +22,6 @@ import org.apache.flink.cdc.connectors.base.source.meta.offset.OffsetFactory;
 import org.apache.flink.cdc.connectors.base.source.meta.split.SourceSplitState;
 import org.apache.flink.cdc.connectors.base.source.metrics.SourceReaderMetrics;
 import org.apache.flink.cdc.connectors.base.source.reader.IncrementalSourceRecordEmitter;
-import org.apache.flink.cdc.connectors.postgres.source.config.PostgresSourceConfig;
 import org.apache.flink.cdc.connectors.postgres.source.schema.PostgresSchemaRecord;
 import org.apache.flink.cdc.connectors.postgres.source.utils.PostgresSourceRecordUtils;
 import org.apache.flink.cdc.debezium.DebeziumDeserializationSchema;
@@ -32,33 +31,26 @@ import io.debezium.relational.history.TableChanges;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import java.io.IOException;
-import java.util.List;
-
-import static org.apache.flink.cdc.common.utils.Preconditions.checkState;
 
 /** Record emitter that recognizes {@link PostgresSchemaRecord} as schema change events. */
 public class PostgresSourceRecordEmitter<T> extends IncrementalSourceRecordEmitter<T> {
-    protected final PostgresSourceConfig sourceConfig;
-
     public PostgresSourceRecordEmitter(
             DebeziumDeserializationSchema<T> debeziumDeserializationSchema,
             SourceReaderMetrics sourceReaderMetrics,
             boolean includeSchemaChanges,
-            OffsetFactory offsetFactory,
-            PostgresSourceConfig sourceConfig) {
+            OffsetFactory offsetFactory) {
         super(
                 debeziumDeserializationSchema,
                 sourceReaderMetrics,
                 includeSchemaChanges,
                 offsetFactory);
-        this.sourceConfig = sourceConfig;
     }
 
     @Override
     protected void processElement(
             SourceRecord element, SourceOutput<T> output, SourceSplitState splitState)
             throws Exception {
-        if (isIncludeEmitLogicalMessage(element)) {
+        if (PostgresSourceRecordUtils.isLogicalMessage(element)) {
             updateStreamSplitState(splitState, element);
             emitElement(element, output);
             return;
@@ -81,19 +73,5 @@ public class PostgresSourceRecordEmitter<T> extends IncrementalSourceRecordEmitt
         } else {
             return super.getTableChangeRecord(element);
         }
-    }
-
-    private boolean isIncludeEmitLogicalMessage(SourceRecord record) {
-        List<String> prefixes = sourceConfig.getLogicalMessagePrefixes();
-        if (prefixes == null
-                || prefixes.isEmpty()
-                || !PostgresSourceRecordUtils.isLogicalMessage(record)) {
-            return false;
-        }
-
-        String prefix = PostgresSourceRecordUtils.getLogicalMessagePrefix(record);
-        checkState(prefix != null, "message_prefix can not be null for logical_message");
-
-        return prefixes.stream().anyMatch(prefix::startsWith);
     }
 }
